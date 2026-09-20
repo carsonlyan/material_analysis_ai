@@ -1,0 +1,39 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger: none
+
+pool:
+  name: AUTOMATION
+  demands: Agent.Name -equals DEHAM-QA-50009
+  
+
+jobs:
+  - job: validation
+    variables:
+      - group: materials_validation
+    steps:
+      - script: |
+          python -m venv .venv
+          call .venv\Scripts\activate
+          pip install -r requirements.txt
+          exit /b %ERRORLEVEL%
+        workingDirectory: $(System.DefaultWorkingDirectory)
+        displayName: activate virtual env
+
+      - task: PythonScript@0
+        displayName: run validation
+        inputs:
+          scriptSource: 'filePath'
+          scriptPath: 'main.py'
+          pythonInterpreter: '$(System.DefaultWorkingDirectory)/.venv/Scripts/python.exe'
+
+      - task: PublishPipelineArtifact@1
+        displayName: publish result
+        condition: succeeded()
+        inputs:
+          targetPath: 'output/validation_results.json'
+          artifactName: result
+
